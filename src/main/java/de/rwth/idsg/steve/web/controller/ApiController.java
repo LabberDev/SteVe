@@ -229,13 +229,15 @@ public class ApiController {
     }
 
     @PutMapping("/addToken")
-    public void putToken(@RequestParam("id") String ocpp_parent,
+    public void putToken(@RequestParam(value = "id", required = false) String ocpp_parent,
                          @RequestParam("token") String token,
                          @RequestParam(value = "note", required = false, defaultValue = " ") String note,
                          HttpServletResponse response) throws IOException {
         OcppTagForm newTag = new OcppTagForm();
         newTag.setIdTag(token);
-        newTag.setParentIdTag(ocpp_parent);
+        if (ocpp_parent != null) {
+            newTag.setParentIdTag(ocpp_parent);
+        }
         if (note == null) {
             note = "";
         }
@@ -317,9 +319,17 @@ public class ApiController {
                             transactionDetailList.add(String.valueOf(transaction.getId()));
                             transactionDetailList.add(transaction.getChargeBoxId());
                             AddressRecord addressRecord = chargePointRepository.getDetails(transaction.getChargeBoxPk()).getAddress();
-                            String address = addressRecord.getStreet() + " " + addressRecord.getHouseNumber() + ", "
-                                    + addressRecord.getCountry() + " " + addressRecord.getZipCode() + " " + addressRecord.getCity();
-                            transactionDetailList.add(address);
+                            String street = addressRecord.getStreet() + " " + addressRecord.getHouseNumber();
+                            String country = addressRecord.getCountry();
+                            String zipCode = addressRecord.getZipCode();
+                            String city = addressRecord.getCity();
+                            transactionDetailList.add(street);
+                            transactionDetailList.add(country);
+                            transactionDetailList.add(zipCode);
+                            transactionDetailList.add(city);
+                            // String address = addressRecord.getStreet() + " " + addressRecord.getHouseNumber() + ", "
+                            //         + addressRecord.getCountry() + " " + addressRecord.getZipCode() + " " + addressRecord.getCity();
+                            // transactionDetailList.add(address);
                             transactionDetailList.add(transaction.getOcppIdTag());
                             transactionDetailList.add(transaction.getStartValue());
                             transactionDetailList.add(transaction.getStartTimestampDT().toString());
