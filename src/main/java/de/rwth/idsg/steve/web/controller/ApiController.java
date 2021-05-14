@@ -241,34 +241,33 @@ public class ApiController {
           map_temp.put("latitudine", lat);
 
           // inserimento valori - indirizzo
-          String test = String.valueOf(cp.getAddress());
-          String test2 = "null";
-          if (test == null) {
-            test = "null";
+          String indirizzo_via = String.valueOf(cp.getAddress());
+          String indirizzo_citta = "null";
+          if (indirizzo_via == null) {
+            indirizzo_via = "null";
           }
-          if (test != "null")
+          if (indirizzo_via != "null")
           {
               for (int i = 0; i < 9; i++)
               {
-                test = test.substring(test.indexOf("|")+1, test.length());
+                indirizzo_via = indirizzo_via.substring(indirizzo_via.indexOf("|")+1, indirizzo_via.length());
               }
-              test2 = test;
+              indirizzo_citta = indirizzo_via;
               for (int i = 0; i < 3; i++)
               {
-                test2 = test2.substring(test2.indexOf("|")+1, test2.length());
+                indirizzo_citta = teindirizzo_cittast2.substring(indirizzo_citta.indexOf("|")+1, indirizzo_citta.length());
               }
-              test = test.substring(0, test.indexOf("|"));
-              test2 = test2.substring(0, test2.indexOf("|"));
+              indirizzo_via = indirizzo_via.substring(0, indirizzo_via.indexOf("|"));
+              indirizzo_citta = indirizzo_citta.substring(0, indirizzo_citta.indexOf("|"));
           }
-          map_temp.put("via", test);
-          map_temp.put("citta", test2);
+          map_temp.put("via", indirizzo_via);
+          map_temp.put("citta", indirizzo_citta);
 
-          // inserimento valori - stato
+          // inserimento valori - stato (disponibile, occupato, ...)
           List<ConnectorStatus> latestList = chargePointRepository.getChargePointConnectorStatus();
           List<ConnectorStatus> filteredList = ConnectorStatusFilter.filterAndPreferZero(
             latestList
           );
-
           Optional<ConnectorStatus> optionalFilteredList = filteredList
             .stream()
             .parallel()
@@ -279,6 +278,7 @@ public class ApiController {
 
           map_temp.put("stato", temp);
 
+          // inserimento della colonnina all'interno della lista
           cbDetailsFinal.put(chPoint.toString(), map_temp);
         }
       );
@@ -384,27 +384,27 @@ public class ApiController {
     writeOutput(response, s);
   }
 
-  @GetMapping("/user_login")
-  public void getUserDetails(
-    @RequestParam("email") String email,
-    @RequestParam("id") String id,
-    HttpServletResponse response
-  )
-    throws IOException {
-    Optional<User.Overview> user = userRepository
-      .getOverview(new UserQueryForm())
-      .stream()
-      .parallel()
-      .filter(usr -> usr.getEmail().equals(email))
-      .findFirst();
-    if (user.isPresent() && user.get().getOcppIdTag().equals(id)) {
-      String s = serializeArray("true");
-      writeOutput(response, s);
-    } else {
-      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-      writeOutput(response, serializeArray("false"));
-    }
-  }
+  // @GetMapping("/user_login")
+  // public void getUserDetails(
+  //   @RequestParam("email") String email,
+  //   @RequestParam("id") String id,
+  //   HttpServletResponse response
+  // )
+  //   throws IOException {
+  //   Optional<User.Overview> user = userRepository
+  //     .getOverview(new UserQueryForm())
+  //     .stream()
+  //     .parallel()
+  //     .filter(usr -> usr.getEmail().equals(email))
+  //     .findFirst();
+  //   if (user.isPresent() && user.get().getOcppIdTag().equals(id)) {
+  //     String s = serializeArray("true");
+  //     writeOutput(response, s);
+  //   } else {
+  //     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+  //     writeOutput(response, serializeArray("false"));
+  //   }
+  // }
 
   @PutMapping("/addToken")
   public void putToken(
@@ -534,10 +534,13 @@ public class ApiController {
               AddressRecord addressRecord = chargePointRepository
                 .getDetails(transaction.getChargeBoxPk())
                 .getAddress();
-              String street =
-                addressRecord.getStreet() +
-                " " +
-                addressRecord.getHouseNumber();
+              String temp = addressRecord.getStreet();
+              String street = "";
+              if (temp != null)
+                street = temp;
+              temp = addressRecord.getHouseNumber();
+              if (temp != null)
+                street = street + " " + temp;
               String country = addressRecord.getCountry();
               String zipCode = addressRecord.getZipCode();
               String city = addressRecord.getCity();
