@@ -241,27 +241,23 @@ public class ApiController {
           map_temp.put("latitudine", lat);
 
           // inserimento valori - indirizzo
-          String indirizzo_via = String.valueOf(cp.getAddress());
-          String indirizzo_citta = "null";
-          if (indirizzo_via == null) {
-            indirizzo_via = "null";
+          Map<String, String> address = new HashMap<String, String>();
+          address = getAddress(cp);
+
+          if (address == null) {
+            map_temp.put("via", "null");
+            map_temp.put("citta", "null");
+          } else {
+            if (address.get("numero_civico") == "null") {
+              map_temp.put("via", address.get("via"));
+            } else {
+              map_temp.put(
+                "via",
+                address.get("via") + " " + address.get("numero_civico")
+              );
+            }
+            map_temp.put("citta", address.get("citta"));
           }
-          if (indirizzo_via != "null")
-          {
-              for (int i = 0; i < 9; i++)
-              {
-                indirizzo_via = indirizzo_via.substring(indirizzo_via.indexOf("|")+1, indirizzo_via.length());
-              }
-              indirizzo_citta = indirizzo_via;
-              for (int i = 0; i < 3; i++)
-              {
-                indirizzo_citta = teindirizzo_cittast2.substring(indirizzo_citta.indexOf("|")+1, indirizzo_citta.length());
-              }
-              indirizzo_via = indirizzo_via.substring(0, indirizzo_via.indexOf("|"));
-              indirizzo_citta = indirizzo_citta.substring(0, indirizzo_citta.indexOf("|"));
-          }
-          map_temp.put("via", indirizzo_via);
-          map_temp.put("citta", indirizzo_citta);
 
           // inserimento valori - stato (disponibile, occupato, ...)
           List<ConnectorStatus> latestList = chargePointRepository.getChargePointConnectorStatus();
@@ -536,11 +532,9 @@ public class ApiController {
                 .getAddress();
               String temp = addressRecord.getStreet();
               String street = "";
-              if (temp != null)
-                street = temp;
+              if (temp != null) street = temp;
               temp = addressRecord.getHouseNumber();
-              if (temp != null)
-                street = street + " " + temp;
+              if (temp != null) street = street + " " + temp;
               String country = addressRecord.getCountry();
               String zipCode = addressRecord.getZipCode();
               String city = addressRecord.getCity();
@@ -668,6 +662,70 @@ public class ApiController {
       );
       return "[]";
     }
+  }
+
+  /**
+   * Restituisce l'indirizzo sotto forma di Map di String.
+   */
+  private Map<String, String> getAddress(ChargePoint.Details cp) {
+    Map<String, String> address = new HashMap<String, String>();
+
+    // cp.getAddress()
+    /*
+      +--+--+--+--+--+--+\n|address_pk|street|house_number|zip_code|city|
+      country|\n+--+--+--+--+--+--+\n|2|PIAZZALE GIOVANNI DALLE BANDE NERE 9|
+      {null}|{null}|MILANO|{null}|\n+--+--+---+--+--+--+\n
+    */
+
+    String indirizzo = String.valueOf(cp.getAddress());
+
+    if (indirizzo == null) return null;
+    if (indirizzo == "null") return null;
+
+    for (int i = 0; i < 9; i++) {
+      indirizzo =
+        indirizzo.substring(indirizzo.indexOf("|") + 1, indirizzo.length());
+    }
+
+    address.put("via", returnCleanElement(indirizzo, 0));
+    address.put("numero_civico", returnCleanElement(indirizzo, 1));
+    address.put("cap", returnCleanElement(indirizzo, 2));
+    address.put("citta", returnCleanElement(indirizzo, 3));
+    address.put("nazione", returnCleanElement(indirizzo, 4));
+
+    return address;
+  }
+
+  /**
+   * questa funzione viene usata per fare una substring dell'indirizzo e
+   * ottenere il parametro che si vuole (città, via, cap, ...) in base
+   * all'indice (0 -> Via, 1 -> Numero civico, 2 -> Cap, 3 -> Città,
+   * 4 -> Nazione)
+   */
+  private String returnCleanElement(String stringToClean, int index) {
+    if (stringToClean == null) return null;
+    if (stringToClean == "null") return null;
+
+    for (int i = 0; i < index; i++) {
+      stringToClean =
+        stringToClean.substring(
+          stringToClean.indexOf("|") + 1,
+          stringToClean.length()
+        );
+    }
+
+    String cleanedElement = stringToClean.substring(
+      0,
+      stringToClean.indexOf("|")
+    );
+
+    cleanedElement = cleanedElement.trim();
+
+    if (cleanedElement.contains("{null}")) {
+      cleanedElement = "null";
+    }
+
+    return cleanedElement;
   }
 
   /**
